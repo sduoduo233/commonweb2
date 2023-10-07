@@ -8,6 +8,13 @@
 
 ![img](https://github.com/sduoduo233/commonweb2/raw/master/commonweb2.png)
 
+# 编译
+1. `git clone https://github.com/sduoduo233/commonweb2.git`
+2. `CGO_ENABLED=0 go build -trimpath`
+
+# 下载
+[Github release](https://github.com/sduoduo233/commonweb2/releases)
+
 # 如何使用
 服务端启动参数:
 
