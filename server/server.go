@@ -117,7 +117,7 @@ func (s *server) Start() error {
 			return fmt.Errorf("accept: %w", err)
 		}
 
-		slog.Info("new connection", "addr", conn.RemoteAddr())
+		slog.Debug("new connection", "addr", conn.RemoteAddr())
 
 		go func() {
 			err := s.handleConnection(conn)
@@ -125,7 +125,7 @@ func (s *server) Start() error {
 				slog.Error("handle connection", "error", err)
 			}
 
-			slog.Info("connection ends", "addr", conn.RemoteAddr())
+			slog.Debug("connection ends", "addr", conn.RemoteAddr())
 			conn.Close()
 		}()
 	}
@@ -133,7 +133,7 @@ func (s *server) Start() error {
 
 func (*server) writeResponse(code int, conn io.Writer) error {
 	status := http.StatusText(code)
-	_, err := conn.Write([]byte(fmt.Sprintf("HTTP/1.1 %d %s\r\nContent-Length: 0\r\n\r\n", code, status)))
+	_, err := conn.Write([]byte(fmt.Sprintf("HTTP/1.1 %d %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", code, status)))
 	return err
 }
 
@@ -166,7 +166,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 		return s.writeResponse(http.StatusBadRequest, conn)
 	}
 	method, _, version := splites[0], splites[1], splites[2]
-	if version != "HTTP/1.1" {
+	if version != "HTTP/1.1" && version != "HTTP/1.0" {
 		return s.writeResponse(http.StatusHTTPVersionNotSupported, conn)
 	}
 
@@ -190,7 +190,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 	// get session
 	sess := s.findSession(sessionId)
 
-	slog.Info("new request", "method", method, "sessionId", sessionId)
+	slog.Info("new request", "method", method, "sessionId", sessionId, "addr", conn.RemoteAddr())
 
 	// session timeout
 	go func() {
@@ -199,7 +199,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 		ready := sess.up != nil && sess.down != nil
 		sess.Unlock()
 		if !ready {
-			slog.Debug("session timeout", "sessionId", sess.sessionId)
+			slog.Warn("session timeout", "sessionId", sess.sessionId)
 			close(sess.ch)
 		}
 	}()
@@ -263,6 +263,7 @@ func (s *server) handleDownload(reader io.Reader, writer io.Writer, sess *sessio
 	resp := "HTTP/1.1 200 OK\r\n"
 	resp += "Transfer-Encoding: chunked\r\n"
 	resp += "Content-Type: application/octet-stream\r\n"
+	resp += "Connection: close\r\n"
 	resp += "\r\n"
 	_, err := writer.Write([]byte(resp))
 	if err != nil {
