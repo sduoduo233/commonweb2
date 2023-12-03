@@ -247,3 +247,52 @@ func TestUploadBuffering(t *testing.T) {
 	}
 
 }
+
+func TestClosing(t *testing.T) {
+	ch := make(chan any)
+	defer close(ch)
+
+	setupCommonweb(t, ch)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// remote
+	go func() {
+		defer wg.Done()
+
+		l, err := net.Listen("tcp", "127.0.0.1:30020")
+		if err != nil {
+			t.Log("remote listen", err)
+			t.Fail()
+			return
+		}
+
+		defer l.Close()
+
+		conn, err := l.Accept()
+		if err != nil {
+			t.Fail()
+			t.Log("remote accept", err)
+			return
+		}
+
+		fmt.Println("remote closed")
+		conn.Close() // close immediately
+	}()
+
+	time.Sleep(time.Second * 5) // wait for client and server to start
+
+	conn, err := net.Dial("tcp", "127.0.0.1:30010")
+	if err != nil {
+		t.Fail()
+		t.Log("dial", err)
+		return
+	}
+
+	defer conn.Close()
+
+	time.Sleep(time.Second * 5)
+
+	wg.Wait() // wait for remote to finish reading
+}

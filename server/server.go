@@ -29,9 +29,17 @@ type session struct {
 	sync.Mutex
 }
 
+// close s.ch if it is not closed
+func (s *session) close() {
+	select {
+	case <-s.ch:
+	default:
+		close(s.ch)
+	}
+}
+
 // connect to remote and copy data
 func (s *session) copy(remote string) {
-	defer close(s.ch)
 
 	conn, err := net.Dial("tcp", remote)
 	if err != nil {
@@ -39,12 +47,9 @@ func (s *session) copy(remote string) {
 		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-
 	// up conn -> remote
 	go func() {
-		defer wg.Done()
+		defer s.close()
 		defer conn.Close()
 
 		for {
@@ -79,7 +84,7 @@ func (s *session) copy(remote string) {
 
 	// remote -> down conn
 	go func() {
-		defer wg.Done()
+		defer s.close()
 		defer conn.Close()
 
 		for {
@@ -108,7 +113,7 @@ func (s *session) copy(remote string) {
 
 	}()
 
-	wg.Wait()
+	<-s.ch
 }
 
 func (s *server) Start() error {
@@ -133,7 +138,7 @@ func (s *server) Start() error {
 				slog.Error("handle connection", "error", err)
 			}
 
-			slog.Debug("connection ends", "addr", conn.RemoteAddr())
+			slog.Info("connection ends", "addr", conn.RemoteAddr())
 			conn.Close()
 		}()
 	}
@@ -212,7 +217,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 		sess.Unlock()
 		if !ready {
 			slog.Warn("session timeout", "sessionId", sess.sessionId)
-			close(sess.ch)
+			sess.close()
 		}
 	}()
 
