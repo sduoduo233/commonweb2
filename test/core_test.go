@@ -5,6 +5,7 @@ import (
 	"commonweb2/client"
 	"commonweb2/server"
 	"crypto/rand"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -33,7 +34,7 @@ func setupCommonweb(t *testing.T, ch chan any) {
 	go func() {
 		err := c.Start()
 		if err != nil {
-			t.Log("client start", err)
+			fmt.Println("client start", err)
 			return
 		}
 	}()
@@ -49,7 +50,7 @@ func setupCommonweb(t *testing.T, ch chan any) {
 	go func() {
 		err := s.Start()
 		if err != nil {
-			t.Log("server start", err)
+			fmt.Println("server start", err)
 			return
 		}
 	}()

@@ -13,17 +13,20 @@ import (
 )
 
 type client struct {
-	up       string
-	down     string
-	listen   string
-	listener net.Listener
+	up         string
+	down       string
+	listen     string
+	listener   net.Listener
+	httpClient http.Client
 }
 
 func NewClient(up, down, listen string) *client {
+	httpClient := http.Client{}
 	return &client{
-		up:     up,
-		down:   down,
-		listen: listen,
+		up:         up,
+		down:       down,
+		listen:     listen,
+		httpClient: httpClient,
 	}
 }
 
@@ -53,6 +56,7 @@ func (c *client) Start() error {
 }
 
 func (c *client) Close() error {
+	c.httpClient.CloseIdleConnections()
 	return c.listener.Close()
 }
 
@@ -86,7 +90,7 @@ func (c *client) handleConnection(conn net.Conn) error {
 	go func() {
 		defer cancel()
 
-		resp, err := http.DefaultClient.Do(upRequest)
+		resp, err := c.httpClient.Do(upRequest)
 		if err != nil {
 			unwrap := errors.Unwrap(err)
 			// ignore the error if it is caused by context cancel
@@ -103,7 +107,7 @@ func (c *client) handleConnection(conn net.Conn) error {
 	go func() {
 		defer cancel()
 
-		resp, err := http.DefaultClient.Do(downRequest)
+		resp, err := c.httpClient.Do(downRequest)
 		if err != nil {
 			unwrap := errors.Unwrap(err)
 			// ignore the error if it is caused by context cancel
