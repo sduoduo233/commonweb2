@@ -18,6 +18,7 @@ type server struct {
 	listen   string
 	remote   string
 	sessions sync.Map
+	listener net.Listener
 }
 
 type session struct {
@@ -56,6 +57,11 @@ func (s *session) copy(remote string) {
 			}
 			length, err := strconv.ParseUint(string(line), 16, 32)
 			if err != nil {
+				return
+			}
+
+			if length == 0 {
+				// zero length indicating end of stream
 				return
 			}
 
@@ -111,6 +117,8 @@ func (s *server) Start() error {
 		return err
 	}
 
+	s.listener = l
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -129,6 +137,10 @@ func (s *server) Start() error {
 			conn.Close()
 		}()
 	}
+}
+
+func (s *server) Close() error {
+	return s.listener.Close()
 }
 
 func (*server) writeResponse(code int, conn io.Writer) error {

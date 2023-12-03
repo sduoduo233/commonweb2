@@ -13,9 +13,10 @@ import (
 )
 
 type client struct {
-	up     string
-	down   string
-	listen string
+	up       string
+	down     string
+	listen   string
+	listener net.Listener
 }
 
 func NewClient(up, down, listen string) *client {
@@ -32,6 +33,8 @@ func (c *client) Start() error {
 		return fmt.Errorf("listen: %w", err)
 	}
 
+	c.listener = l
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -47,6 +50,10 @@ func (c *client) Start() error {
 			conn.Close()
 		}()
 	}
+}
+
+func (c *client) Close() error {
+	return c.listener.Close()
 }
 
 func (c *client) handleConnection(conn net.Conn) error {
