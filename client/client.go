@@ -100,7 +100,11 @@ func (c *client) handleConnection(conn net.Conn) error {
 			return
 		}
 
+		defer resp.Body.Close()
+
 		slog.Debug("upload reqeust", "status", resp.Status)
+
+		io.Copy(io.Discard, resp.Body)
 	}()
 
 	// down
@@ -117,6 +121,8 @@ func (c *client) handleConnection(conn net.Conn) error {
 			return
 		}
 
+		defer resp.Body.Close()
+
 		if resp.StatusCode != http.StatusOK {
 			slog.Error("download request", "status", resp.Status)
 			return
@@ -124,7 +130,10 @@ func (c *client) handleConnection(conn net.Conn) error {
 
 		slog.Debug("download reqeust", "status", resp.Status)
 
-		io.Copy(conn, resp.Body)
+		_, err = io.Copy(conn, resp.Body)
+		if err != nil {
+			slog.Debug("read doanload request", "err", err)
+		}
 	}()
 
 	<-ctx.Done()
