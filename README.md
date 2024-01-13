@@ -1,12 +1,12 @@
 # Commonweb2
-Saperating uploading and downloading traffic to bypass some firewalls
+Separating uploading and downloading traffic to bypass some firewalls
 
 [简体中文](https://github.com/sduoduo233/commonweb2/blob/master/README_zh_cn.md)
 
 # How does it work
-CW2 client saperates every connection into two HTTP connections, one for uploading and one for downloading. Data streams are transmmited using HTTP chunked encoding (`Transfer-Encoding: chunked`)
+CW2 client separates every connection into two HTTP connections, one for uploading and one for downloading. Data streams are transmitted using HTTP chunked encoding (`Transfer-Encoding: chunked`)
 
-CW2 server differentiates uploading and downloading connections using the HTTP method (GET or POST). Connections are reassembled according to the `X-Session-Id` header. Reassembled connections are then forwarded to the `remote` server (e.g. your shadowsocks/vmess server).
+The CW2 server differentiates between uploading and downloading connections using the HTTP method (GET or POST). Connections are reassembled according to the `X-Session-Id` header. Reassembled connections are then forwarded to the `remote` server (e.g. your shadowsocks/vmess server).
 
 ![img](https://github.com/sduoduo233/commonweb2/raw/master/commonweb2.png)
 

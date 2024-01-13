@@ -1,3 +1,4 @@
 commonweb2
 .vscode
 build
+__debug*
