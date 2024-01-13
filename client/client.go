@@ -95,14 +95,14 @@ func (c *client) handleConnection(conn net.Conn) error {
 			unwrap := errors.Unwrap(err)
 			// ignore the error if it is caused by context cancel
 			if !(unwrap != nil && errors.Is(unwrap, context.Canceled)) {
-				slog.Error("upload request", "error", err)
+				slog.Error("upload request", "error", err, "sessionId", hex.EncodeToString(sessionId))
 			}
 			return
 		}
 
 		defer resp.Body.Close()
 
-		slog.Debug("upload reqeust", "status", resp.Status)
+		slog.Debug("upload reqeust", "status", resp.Status, "sessionId", hex.EncodeToString(sessionId))
 
 		io.Copy(io.Discard, resp.Body)
 	}()
@@ -116,7 +116,7 @@ func (c *client) handleConnection(conn net.Conn) error {
 			unwrap := errors.Unwrap(err)
 			// ignore the error if it is caused by context cancel
 			if !(unwrap != nil && errors.Is(unwrap, context.Canceled)) {
-				slog.Error("upload request", "error", err)
+				slog.Error("upload request", "error", err, "sessionId", hex.EncodeToString(sessionId))
 			}
 			return
 		}
@@ -124,15 +124,15 @@ func (c *client) handleConnection(conn net.Conn) error {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			slog.Error("download request", "status", resp.Status)
+			slog.Error("download request", "status", resp.Status, "sessionId", hex.EncodeToString(sessionId))
 			return
 		}
 
-		slog.Debug("download reqeust", "status", resp.Status)
+		slog.Debug("download reqeust", "status", resp.Status, "sessionId", hex.EncodeToString(sessionId))
 
 		_, err = io.Copy(conn, resp.Body)
 		if err != nil {
-			slog.Debug("read doanload request", "err", err)
+			slog.Debug("read doanload request", "err", err, "sessionId", hex.EncodeToString(sessionId))
 		}
 	}()
 
