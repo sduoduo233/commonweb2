@@ -170,6 +170,9 @@ func (s *server) findSession(sessionId string) *session {
 }
 
 func (s *server) handleConnection(conn net.Conn) error {
+
+	conn.(*net.TCPConn).SetNoDelay(true)
+
 	bufReader := bufio.NewReader(conn)
 	reader := textproto.NewReader(bufReader)
 	line, err := reader.ReadLine()
