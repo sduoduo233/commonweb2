@@ -11,10 +11,11 @@ import (
 func main() {
 	debug := flag.Bool("debug", false, "enable debug logging")
 	mode := flag.String("mode", "server", "server / client")
+	utls := flag.Bool("utls", false, "[client only] enable or disable utls")
 	up := flag.String("up", "http://127.0.0.1:56000/", "[client only] upload url")
 	down := flag.String("down", "http://127.0.0.1:56000/", "[client only] download url")
-	remote := flag.String("remote", "127.0.0.1:56200", "[server only]ex remote address")
-	listen := flag.String("listen", "127.0.0.1:56100", "listen addresss")
+	remote := flag.String("remote", "127.0.0.1:56200", "[server only] remote address")
+	listen := flag.String("listen", "127.0.0.1:56100", "listen address")
 	flag.Parse()
 
 	if *mode != "server" && *mode != "client" {
@@ -42,7 +43,7 @@ func main() {
 
 	} else {
 
-		c := client.NewClient(*up, *down, *listen)
+		c := client.NewClient(*up, *down, *listen, *utls)
 		err := c.Start()
 		if err != nil {
 			slog.Error("start client", "error", err)

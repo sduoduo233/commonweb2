@@ -10,6 +10,8 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+
+	utls "github.com/refraction-networking/utls"
 )
 
 type client struct {
@@ -20,8 +22,33 @@ type client struct {
 	httpClient http.Client
 }
 
-func NewClient(up, down, listen string) *client {
+func NewClient(up, down, listen string, useUTLS bool) *client {
 	httpClient := http.Client{}
+
+	if useUTLS {
+		slog.Info("utls is enabled")
+
+		roller, err := utls.NewRoller()
+		if err != nil {
+			panic("new utls roller: " + err.Error())
+		}
+
+		httpClient.Transport = &http.Transport{
+			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				host, _, err := net.SplitHostPort(addr)
+				if err != nil {
+					return nil, fmt.Errorf("dial tls: split host port: %w", err)
+				}
+
+				uConn, err := roller.Dial(network, addr, host)
+				if err != nil {
+					return nil, fmt.Errorf("dial tls: roller dial: %w", err)
+				}
+
+				return uConn, nil
+			},
+		}
+	}
 	return &client{
 		up:         up,
 		down:       down,
@@ -31,6 +58,8 @@ func NewClient(up, down, listen string) *client {
 }
 
 func (c *client) Start() error {
+	slog.Info("listening on", "addr", c.listen)
+
 	l, err := net.Listen("tcp", c.listen)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
