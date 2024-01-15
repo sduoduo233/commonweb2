@@ -64,3 +64,15 @@ Change `-up` and `-down` parameters to https addresses
 ```
 ./commonweb2 -mode client -up https://example.com/secret_path -down https://example.com/secret_path -listen 127.0.0.1:56010
 ```
+
+## Using UTLS
+
+TLS fingerprints can be used to identify connections created using Golang's built in TLS library. Some firewalls may use this to detect proxy servers, as Golang is widely used by proxying software.
+
+UTLS can be used to mimic the TLS fingerprint of popular browsers.
+
+To enable UTLS, pass the `-utls` parameter to the CW2 client
+
+```
+./commonweb2 -mode client -up https://example.com/secret_path -down https://example.com/secret_path -listen 127.0.0.1:56010 -utls
+```

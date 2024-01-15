@@ -62,3 +62,15 @@ server {
 ```
 ./commonweb2 -mode client -up https://example.com/secret_path -down https://example.com/secret_path -listen 127.0.0.1:56010
 ```
+
+## 使用 UTLS
+
+TLS 指纹可以用来识别使用 Golang 标准库创建的 TLS 连接。某些防火墙可能会使用 TLS 指纹来检测代理服务器，应为 Golang 被代理软件广泛使用。
+
+UTLS 可以用来模仿主流浏览器的 TLS 指纹。
+
+添加 `-utls` 来启用 UTLS
+
+```
+./commonweb2 -mode client -up https://example.com/secret_path -down https://example.com/secret_path -listen 127.0.0.1:56010 -utls
+```
