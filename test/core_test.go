@@ -29,7 +29,7 @@ func randomBytes(n int) []byte {
 // closing the channel will stop commonweb client and server
 func setupCommonweb(t *testing.T, ch chan any) {
 	// client
-	c := client.NewClient("http://127.0.0.1:20010", "http://127.0.0.1:20010", "127.0.0.1:30010")
+	c := client.NewClient("http://127.0.0.1:20010", "http://127.0.0.1:20010", "127.0.0.1:30010", true)
 
 	go func() {
 		err := c.Start()

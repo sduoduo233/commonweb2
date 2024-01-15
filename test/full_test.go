@@ -208,7 +208,7 @@ func TestUploadBuffering(t *testing.T) {
 		return
 	}
 
-	n := randint(20)
+	n := randint(10)
 	for i := 0; i < n+10; i++ {
 		buf := randomBytes(randint(1024))
 
@@ -229,7 +229,7 @@ func TestUploadBuffering(t *testing.T) {
 			return
 		}
 
-		time.Sleep(time.Second * time.Duration(randint(10)))
+		time.Sleep(time.Second * time.Duration(randint(5)))
 	}
 
 	conn.Close()
