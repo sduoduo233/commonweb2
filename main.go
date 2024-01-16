@@ -16,6 +16,7 @@ func main() {
 	down := flag.String("down", "http://127.0.0.1:56000/", "[client only] download url")
 	remote := flag.String("remote", "127.0.0.1:56200", "[server only] remote address")
 	listen := flag.String("listen", "127.0.0.1:56100", "listen address")
+	skipSSLVerify := flag.Bool("skipverify", false, "[client only] skip verifying server's SSL certificate")
 	flag.Parse()
 
 	if *mode != "server" && *mode != "client" {
@@ -43,7 +44,7 @@ func main() {
 
 	} else {
 
-		c := client.NewClient(*up, *down, *listen, *utls)
+		c := client.NewClient(*up, *down, *listen, *utls, *skipSSLVerify)
 		err := c.Start()
 		if err != nil {
 			slog.Error("start client", "error", err)

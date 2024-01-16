@@ -23,45 +23,43 @@ type client struct {
 	httpClient http.Client
 }
 
-func NewClient(up, down, listen string, useUTLS bool) *client {
-	httpClient := http.Client{}
+func NewClient(up, down, listen string, useUTLS, skipVerify bool) *client {
+	httpClient := http.Client{
+		Transport: http.DefaultTransport.(*http.Transport).Clone(),
+	}
 
 	if useUTLS {
-		slog.Info("utls is enabled")
+		slog.Info("using utls")
 
-		roller, err := utls.NewRoller()
-		if err != nil {
-			panic("new utls roller: " + err.Error())
+		httpClient.Transport.(*http.Transport).DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			tcpConn, err := net.DialTimeout(network, addr, time.Second*30)
+			if err != nil {
+				return nil, fmt.Errorf("dial tls: dial tcp: %w", err)
+			}
+
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, fmt.Errorf("dial tls: split host port: %s: %w", addr, err)
+			}
+
+			uConn := utls.UClient(tcpConn, &utls.Config{
+				ServerName:         host,
+				InsecureSkipVerify: skipVerify,
+			}, utls.HelloChrome_Auto)
+
+			err = uConn.HandshakeContext(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("dial tls: handshake: %w", err)
+			}
+
+			return uConn, nil
 		}
+	} else {
+		slog.Info("using crypto/tls")
 
-		httpClient.Transport = &http.Transport{
-			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				host, _, err := net.SplitHostPort(addr)
-				if err != nil {
-					return nil, fmt.Errorf("dial tls: split host port: %w", err)
-				}
-
-				uConn, err := roller.Dial(network, addr, host)
-				if err != nil {
-					return nil, fmt.Errorf("dial tls: roller dial: %w", err)
-				}
-
-				return uConn, nil
-			},
-
-			// default values from http.DefaultTransport
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			ForceAttemptHTTP2:     true,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		}
+		httpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = skipVerify
 	}
+
 	return &client{
 		up:         up,
 		down:       down,
