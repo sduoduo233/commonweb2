@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -87,8 +88,9 @@ func (s *session) copy(remote string) {
 		defer s.close()
 		defer conn.Close()
 
+		buf := make([]byte, 2048)
+
 		for {
-			buf := make([]byte, 1024)
 			n, err := conn.Read(buf)
 			if err != nil {
 				return
@@ -96,17 +98,14 @@ func (s *session) copy(remote string) {
 
 			// http chunked transfer
 			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding#directives
-
-			_, err = s.down.Write([]byte(fmt.Sprintf("%x\r\n", n)))
+			multiReader := io.MultiReader(
+				bytes.NewReader([]byte(fmt.Sprintf("%x\r\n", n))),
+				bytes.NewReader(buf[:n]),
+				bytes.NewReader([]byte("\r\n")),
+			)
+			_, err = io.Copy(s.down, multiReader)
 			if err != nil {
-				return
-			}
-			_, err = s.down.Write(buf[:n])
-			if err != nil {
-				return
-			}
-			_, err = s.down.Write([]byte("\r\n"))
-			if err != nil {
+				slog.Error("copy from remote to down", "err", err)
 				return
 			}
 		}
