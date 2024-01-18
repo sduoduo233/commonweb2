@@ -156,17 +156,12 @@ func (*server) writeResponse(code int, conn io.Writer) error {
 
 // find or create a new session
 func (s *server) findSession(sessionId string) *session {
-	sess, ok := s.sessions.Load(sessionId)
-	if ok {
-		return sess.(*session)
-	}
-
-	sess = &session{
+	v, _ := s.sessions.LoadOrStore(sessionId, &session{
 		sessionId: sessionId,
 		ch:        make(chan struct{}),
-	}
-	s.sessions.Store(sessionId, sess)
-	return sess.(*session)
+	})
+
+	return v.(*session)
 }
 
 func (s *server) handleConnection(conn net.Conn) error {
