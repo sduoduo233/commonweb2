@@ -298,6 +298,14 @@ func (s *server) handleDownload(reader io.Reader, writer io.Writer, sess *sessio
 	}
 
 	<-sess.ch // waiting the session to end
+
+	// https://www.rfc-editor.org/rfc/rfc9112#section-7.1
+	// sending an empty chunk to close the stream
+	_, err = writer.Write([]byte("0\r\n\r\n"))
+	if err != nil {
+		slog.Error("download connection write 0 chunk", "err", err)
+	}
+
 	slog.Debug("download connection ends", "sessionId", sess.sessionId)
 
 	// remote the session from the map
