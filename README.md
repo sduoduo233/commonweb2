@@ -76,3 +76,7 @@ To enable UTLS, pass the `-utls` parameter to the CW2 client
 ```
 ./commonweb2 -mode client -up https://example.com/secret_path -down https://example.com/secret_path -listen 127.0.0.1:56010 -utls
 ```
+
+# Donation
+
+Please consider donating if this project helps you. My XMR address is `86zAU8cCHHyGNeWiZrRutP7baziRDmB8JZ49HiwufNdmKZuUsNECmNaQ7W9JMPUGWEAybYvw6QmU1NSvpkWDAU7AEnSi5k2`

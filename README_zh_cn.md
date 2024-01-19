@@ -74,3 +74,7 @@ UTLS 可以用来模仿主流浏览器的 TLS 指纹。
 ```
 ./commonweb2 -mode client -up https://example.com/secret_path -down https://example.com/secret_path -listen 127.0.0.1:56010 -utls
 ```
+
+# 捐赠
+
+如果这个项目对你有帮助，请考虑捐赠. 我的 XMR 地址是  `86zAU8cCHHyGNeWiZrRutP7baziRDmB8JZ49HiwufNdmKZuUsNECmNaQ7W9JMPUGWEAybYvw6QmU1NSvpkWDAU7AEnSi5k2`
