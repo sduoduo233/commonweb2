@@ -5,9 +5,12 @@ import (
 	"commonweb2/client"
 	"commonweb2/server"
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -24,9 +27,21 @@ func randomBytes(n int) []byte {
 	return b
 }
 
+// return the sha256 sum of the input byte array
+func sha256sum(b []byte) []byte {
+	h := sha256.New()
+	_, err := h.Write(b)
+	if err != nil {
+		panic(err)
+	}
+	return h.Sum(make([]byte, 0))
+}
+
 // setup commonweb client and server
 //
 // closing the channel will stop commonweb client and server
+//
+// setupCommonweb also enables debug logging
 func setupCommonweb(t *testing.T, ch chan any) {
 	// client
 	c := client.NewClient("http://127.0.0.1:20010", "http://127.0.0.1:20010", "127.0.0.1:30010", true, false)
@@ -59,6 +74,12 @@ func setupCommonweb(t *testing.T, ch chan any) {
 		<-ch
 		s.Close()
 	}()
+
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	})))
+
 }
 
 func TestUpload(t *testing.T) {
