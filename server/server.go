@@ -253,16 +253,15 @@ func (s *server) handleConnection(conn net.Conn) error {
 func (s *server) handleUpload(reader io.Reader, writer io.Writer, sess *session) error {
 	sess.Lock()
 	sess.up = reader
-	sess.Unlock()
 
-	sess.Lock()
 	ready := sess.up != nil && sess.down != nil
-	sess.Unlock()
 
 	if ready {
 		slog.Info("session ready", "sessionId", sess.sessionId)
 		go sess.copy(s.remote)
 	}
+
+	sess.Unlock()
 
 	<-sess.ch // waiting the session to end
 	slog.Debug("upload connection ends", "sessionId", sess.sessionId)
@@ -287,16 +286,15 @@ func (s *server) handleDownload(reader io.Reader, writer io.Writer, sess *sessio
 
 	sess.Lock()
 	sess.down = writer
-	sess.Unlock()
 
-	sess.Lock()
 	ready := sess.up != nil && sess.down != nil
-	sess.Unlock()
 
 	if ready {
 		slog.Info("session ready", "sessionId", sess.sessionId)
 		go sess.copy(s.remote)
 	}
+
+	sess.Unlock()
 
 	<-sess.ch // waiting the session to end
 
