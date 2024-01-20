@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -23,20 +22,20 @@ type server struct {
 }
 
 type session struct {
-	sessionId string
-	up        io.Reader // upload connection
-	down      io.Writer // download connection
-	ch        chan struct{}
+	sessionId  string
+	up         io.Reader // upload connection
+	down       io.Writer // download connection
+	ch         chan struct{}
+	timeActive int64     // timestamp when a up/down connection is connected
+	closeOnce  sync.Once // prevent closing ch multiple times
 	sync.Mutex
 }
 
 // close s.ch if it is not closed
 func (s *session) close() {
-	select {
-	case <-s.ch:
-	default:
+	s.closeOnce.Do(func() {
 		close(s.ch)
-	}
+	})
 }
 
 // connect to remote and copy data
@@ -99,16 +98,26 @@ func (s *session) copy(remote string) {
 
 			// http chunked transfer
 			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding#directives
-			multiReader := io.MultiReader(
-				bytes.NewReader([]byte(fmt.Sprintf("%x\r\n", n))),
-				bytes.NewReader(buf[:n]),
-				bytes.NewReader([]byte("\r\n")),
-			)
-			_, err = io.Copy(s.down, multiReader)
+
+			if n == 2048 { // sprintf could be time consuming
+				_, err = s.down.Write([]byte("800\r\n"))
+			} else {
+				_, err = s.down.Write([]byte(fmt.Sprintf("%x\r\n", n)))
+			}
 			if err != nil {
-				slog.Error("copy from remote to down", "err", err)
 				return
 			}
+
+			_, err = s.down.Write(buf[:n])
+			if err != nil {
+				return
+			}
+
+			_, err = s.down.Write([]byte("\r\n"))
+			if err != nil {
+				return
+			}
+
 		}
 
 	}()
@@ -123,6 +132,30 @@ func (s *server) Start() error {
 	}
 
 	s.listener = l
+
+	// session timeout
+	go func() {
+		for {
+			s.sessions.Range(func(key, value any) bool {
+				sess := value.(*session)
+
+				sess.Lock()
+
+				ready := sess.up != nil && sess.down != nil
+
+				if !ready && time.Now().Unix()-sess.timeActive > 10 && sess.timeActive != 0 {
+					slog.Warn("session timeout", "sessionId", sess.sessionId)
+					sess.close()
+					s.sessions.Delete(key)
+				}
+
+				sess.Unlock()
+
+				return true
+			})
+			time.Sleep(time.Second * 5)
+		}
+	}()
 
 	for {
 		conn, err := l.Accept()
@@ -207,18 +240,6 @@ func (s *server) handleConnection(conn net.Conn) error {
 
 	slog.Info("new request", "method", method, "sessionId", sessionId, "addr", conn.RemoteAddr())
 
-	// session timeout
-	go func() {
-		time.Sleep(time.Second * 10)
-		sess.Lock()
-		ready := sess.up != nil && sess.down != nil
-		sess.Unlock()
-		if !ready {
-			slog.Warn("session timeout", "sessionId", sess.sessionId)
-			sess.close()
-		}
-	}()
-
 	// handle request
 	if method == http.MethodGet {
 		sess.Lock()
@@ -253,6 +274,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 func (s *server) handleUpload(reader io.Reader, writer io.Writer, sess *session) error {
 	sess.Lock()
 	sess.up = reader
+	sess.timeActive = time.Now().Unix()
 
 	ready := sess.up != nil && sess.down != nil
 
@@ -286,6 +308,7 @@ func (s *server) handleDownload(reader io.Reader, writer io.Writer, sess *sessio
 
 	sess.Lock()
 	sess.down = writer
+	sess.timeActive = time.Now().Unix()
 
 	ready := sess.up != nil && sess.down != nil
 
