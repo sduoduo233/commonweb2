@@ -296,7 +296,7 @@ func (s *server) handleUpload(reader io.Reader, writer io.Writer, sess *session)
 }
 
 // handle download connection
-func (s *server) handleDownload(reader io.Reader, writer io.Writer, sess *session) error {
+func (s *server) handleDownload(_ io.Reader, writer io.Writer, sess *session) error {
 	resp := "HTTP/1.1 200 OK\r\n"
 	resp += "Transfer-Encoding: chunked\r\n"
 	resp += "Content-Type: application/octet-stream\r\n"
