@@ -87,6 +87,7 @@ func (s *session) copy(remote string) {
 	go func() {
 		defer s.close()
 		defer conn.Close()
+		defer slog.Debug("session closed", "sessionId", s.sessionId, "cause", "remote -> down")
 
 		buf := make([]byte, 2048)
 
