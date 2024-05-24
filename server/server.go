@@ -43,6 +43,7 @@ func (s *session) copy(remote string) {
 
 	conn, err := net.Dial("tcp", remote)
 	if err != nil {
+		s.close()
 		slog.Error("dial remote", "error", err)
 		return
 	}
