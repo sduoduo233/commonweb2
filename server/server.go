@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const SESSION_TIMEOUT = 10
+
 type server struct {
 	listen   string
 	remote   string
@@ -145,7 +147,7 @@ func (s *server) Start() error {
 
 				ready := sess.up != nil && sess.down != nil
 
-				if !ready && time.Now().Unix()-sess.timeActive > 10 && sess.timeActive != 0 {
+				if !ready && time.Now().Unix()-sess.timeActive > SESSION_TIMEOUT && sess.timeActive != 0 {
 					slog.Warn("session timeout", "sessionId", sess.sessionId)
 					sess.close()
 					s.sessions.Delete(key)
@@ -231,9 +233,11 @@ func (s *server) handleConnection(conn net.Conn) error {
 
 	sessionId := headers.Get("X-Session-Id")
 	if sessionId == "" {
+		slog.Debug("bad request", "reason", "missing session id", "addr", conn.RemoteAddr())
 		return s.writeResponse(http.StatusBadRequest, conn)
 	}
 	if len(sessionId) > 16 {
+		slog.Debug("bad request", "reason", "session id too long", "addr", conn.RemoteAddr())
 		return s.writeResponse(http.StatusBadRequest, conn)
 	}
 
@@ -249,6 +253,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 		if sess.down != nil {
 			sess.Unlock()
 			// donwload connection already exists
+			slog.Debug("bad request", "reason", "donwload connection already exists", "addr", conn.RemoteAddr())
 			return s.writeResponse(http.StatusBadRequest, conn)
 		}
 		sess.Unlock()
@@ -262,6 +267,7 @@ func (s *server) handleConnection(conn net.Conn) error {
 		if sess.up != nil {
 			sess.Unlock()
 			// upload connection already exists
+			slog.Debug("bad request", "reason", "upload connection already exists", "addr", conn.RemoteAddr())
 			return s.writeResponse(http.StatusBadRequest, conn)
 		}
 		sess.Unlock()
